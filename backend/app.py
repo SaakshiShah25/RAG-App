@@ -62,9 +62,7 @@ def generate():
 def display_files():
     file_path = SAVE_DIR # "uploads"
     files = os.listdir(file_path) # list of files present locally
-    data = [file for file in files]
-    print("DATA: ", data)
-    return data
+    return files
 
 @app.route("/api/download_file", methods=["GET"])
 def download_file():
