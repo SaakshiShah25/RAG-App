@@ -4,12 +4,14 @@ from rag_pdf import *
 import io
 
 
-app = Flask(__name__)
+app = Flask(__name__) # Flask instance
 CORS(app)  # Allows cross-origin requests
 
 index_name = os.getenv("INDEX_NAME")
 index =  None
 
+# need to call here and not in main function since gunicorn skips if __name__ == "__main__": block
+create_local_storage()
 
 @app.route("/api/upload_file", methods=["POST"])
 def upload_file():
@@ -81,7 +83,6 @@ def delete_file():
 
 
 if __name__ == "__main__":
-    create_local_storage()
     port = int(os.environ.get("PORT", 10000))  # Dynamically assigned port
     app.run(host="0.0.0.0", port=port, debug=True)
     

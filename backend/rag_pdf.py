@@ -165,7 +165,7 @@ def delete_file_db_local(SAVE_DIR,file_name,index):
     with open(json_file,"w") as f:
         json.dump(data, f, indent=4) #write 
 
-# Helper codes
+# Helper function
 
 def create_local_storage():
     # create a directory to store files locally
