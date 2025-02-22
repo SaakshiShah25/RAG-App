@@ -11,7 +11,7 @@ const QueryGenerator = () => {
         setQuery(event.target.value)
     }
     const handleSubmit = async () => {
-        const res = await axios.post("http://127.0.0.1:5000/api/generate_response", { query } , { headers: { "Content-Type": "application/json" }}); // query is passed as json data 
+        const res = await axios.post("https://rag-app-awh9.onrender.com/api/generate_response", { query } , { headers: { "Content-Type": "application/json" }}); // query is passed as json data 
         // console.log(query)
         // console.log(res)
         setResponse(res.data); // updates response variable and displays the latest value

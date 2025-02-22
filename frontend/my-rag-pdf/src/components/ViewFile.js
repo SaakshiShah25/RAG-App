@@ -7,7 +7,7 @@ const ViewFile = () => {
     const [files,setFiles] = useState([]);  
 
     const displayFiles = async () => {
-        const res = await axios.get("http://127.0.0.1:5000/api/display_files");
+        const res = await axios.get("https://rag-app-awh9.onrender.com/api/display_files");
         // console.log("Files list: ", res.data)
         setFiles(res.data) // set the "files" that we get by GET request 
     }
@@ -19,13 +19,13 @@ const ViewFile = () => {
 
     
     const downloadFile = (filename) => {
-        window.open(`http://127.0.0.1:5000/api/download_file?filename=${filename}`, "_blank");
+        window.open(`https://rag-app-awh9.onrender.com/api/download_file?filename=${filename}`, "_blank");
     };
     
         
 
     const deleteFile = async (filename,index) => {
-        const res = await axios.post("http://127.0.0.1:5000/api/delete_file",{filename});
+        const res = await axios.post("https://rag-app-awh9.onrender.com/api/delete_file",{filename});
         console.log(res.data);
         //Modify the files variable after deletion 
         setFiles(prevFiles => {

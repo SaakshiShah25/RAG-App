@@ -22,7 +22,7 @@ const UploadFile = () => {
             formData.append("files", files[i]) // key,value
         }
 
-        const res = await axios.post("http://127.0.0.1:5000/api/upload_file", formData)
+        const res = await axios.post("https://rag-app-awh9.onrender.com/api/upload_file", formData)
         console.log(res.data)
         setResponse(res.data)
     }
