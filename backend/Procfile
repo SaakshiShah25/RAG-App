@@ -1,1 +1,5 @@
-web: gunicorn app:app --bind 0.0.0.0:$PORT
+# web -> it is a web application
+# 1st app -> app.py file
+# 2nd app -> app variable i.e the Flask instance 
+# deploy the Flask instance(app variable) found inside the app.py file on a dynamically available PORT
+web: gunicorn app:app
