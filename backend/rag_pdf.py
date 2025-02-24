@@ -10,6 +10,8 @@ import os
 import requests
 import json
 import uuid
+import boto3
+import numpy as np
 warnings.filterwarnings("ignore")
 
 # Load the necessary keys from the .env file
@@ -43,7 +45,7 @@ def create_chunks(pdf_text):
 def create_embeddings_from_chunks(chunks):
     embeddings = pc.inference.embed(
         model="multilingual-e5-large", # creates vector embeddings
-        inputs= chunks, # input text 
+        inputs = chunks, # input text 
         parameters={"input_type": "passage", "truncate": "END"}
     )
     return embeddings
@@ -61,30 +63,17 @@ def create_index(index_name):
             ) 
         ) 
 
-def insert_embeddings_to_db(doc_id, chunks,embeddings,index):
+def insert_embeddings_to_db(doc_id,chunks,embeddings,index):
     records = []
-    id_list = []
     # zip() : creates an iterator of tuples -> (chunks[0], embeddings[0])
-    # enumerate() : adds counter to on iterable
-    # here it will be (1, (chunks[0], embeddings[0]) )
-    # eg: doc1#chunk1, doc1#chunk2 ..
+    # here it will be (chunks[0], embeddings[0])
     for (chunk, embedding) in zip(chunks, embeddings):
         record_id = str(uuid.uuid4())
-        id_list.append(record_id)
         records.append({
             "id": record_id, #doc id : must be string
             "values": embedding['values'], # chunk's embedding/vector
             "metadata": {'text': chunk, 'file_name' : doc_id} # chunk text
         })
-    # Store to json file 
-    # read data from json file
-    with open(json_file, "r") as f:
-        data = json.load(f)
-    # add new data
-    data[doc_id] = id_list
-    # write the new data to the json file
-    with open(json_file, "w") as f:
-        json.dump(data, f, indent=4)
 
     index.upsert( # update or insert
         vectors=records, # "vectors" expects a list of dictionaries
@@ -110,7 +99,6 @@ def retrieve_docs(index,query_embedding):
         include_metadata=True
     )
 
-
     retrieved_docs = []
     for result in results.matches:
         retrieved_docs.append(result["metadata"]["text"])
@@ -133,49 +121,38 @@ def response_generator(context,query):
     )
     return chat_completion.choices[0].message.content
 
-# List of files uploaded
 
-# Query optimisation
+def delete_embeddings_from_db(file_name,index): 
+    print(index.describe_index_stats())  # Check if vectors exist
 
-def delete_file_db_local(SAVE_DIR,file_name,index): 
-    print("FileName:", file_name)
-    # Delete from the DB
-    # retrieve the list of ids of embeddings corresponding to the give file_name
-    with open(json_file,"r") as f:
-        data = json.load(f)
+    response = index.query(
+        vector = [0]*1024,
+        top_k = 100,
+        filter = {"file_name" : {"$eq" : file_name}}, # for exact matches
+        namespace="pdf-rag",
+        include_metadata = True
+    )
+    id_list = []
+    for match in response['matches']:
+        id_list.append(match['id'])
 
-    # list of ids (of embeddings) of the given file
-    id_list = data[file_name]
     if id_list: # delete the embeddings based on ids
         index.delete(ids = id_list, namespace="pdf-rag")
     else:
         print("This file does not exist in DB")
 
-    # Delete locally 
-    # 1. (from uploads folder)
-    file_path = f"{SAVE_DIR}/{file_name}"
-    os.remove(file_path)
 
-    # 2. from json file
-    # delete (modify the json file)
-    with open(json_file,"r") as f:
-        data = json.load(f) #read 
-        del data[file_name] #delete 
-    # write the updated data to the file
-    with open(json_file,"w") as f:
-        json.dump(data, f, indent=4) #write 
+def connect_to_s3():
+    # boto3 is given the required credentials (of IAM user)
+    # checks if the IAM user has access to S3 services
+    # Connects to S3 using those credentials and returns an instance
 
-# Helper function
-
-def create_local_storage():
-    # create a directory to store files locally
-    os.makedirs(SAVE_DIR, exist_ok=True)
-
-    # create an empty data.json file if data.json doesn't exist
-    if not os.path.exists(json_file):
-        with open(json_file,"w") as f:
-            json.dump({},f)
-
-
-
+    s3 = boto3.client(
+        "s3",
+        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+        region_name="ap-south-1"
+    ) 
+    # buckets = s3.list_buckets()
+    return s3
 

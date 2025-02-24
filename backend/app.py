@@ -11,21 +11,25 @@ index_name = os.getenv("INDEX_NAME")
 index =  None
 
 # need to call here and not in main function since gunicorn skips if __name__ == "__main__": block
-create_local_storage()
+s3 = connect_to_s3()
+BUCKET_NAME = os.getenv("BUCKET_NAME")
 
+@app.route("/")
+def home():
+    return "Flask backend is running!"
+    
 @app.route("/api/upload_file", methods=["POST"])
 def upload_file():
     uploaded_files = request.files.getlist("files") # array containing files (file objects)
     responses = []
 
     for uploaded_file in uploaded_files:
-        # Save locally (need to handle this)
-        file_path = os.path.join(SAVE_DIR, uploaded_file.filename)
-        with open(file_path, "wb") as f: # open the file in write and binary mode (file is saved in raw bytes)
-            f.write(uploaded_file.read()) # write the raw byte content
-  
+        file_content = uploaded_file.read() # bytes
+        # Save file to S3
+        s3.upload_fileobj(io.BytesIO(file_content), BUCKET_NAME, uploaded_file.filename) # convert bytes to file like object
+        
         #1. Extract text from pdf
-        pdf_text = extract_text_from_pdf(uploaded_file)
+        pdf_text = extract_text_from_pdf(io.BytesIO(file_content))
         #2. Convert text to chunks
         chunks = create_chunks(pdf_text)
         #3. Create embeddings for chunks
@@ -38,7 +42,6 @@ def upload_file():
         #6. Insert embeddings to the DB (upsert)
         doc_id = uploaded_file.filename # name of file
         insert_embeddings_to_db(doc_id,chunks,embeddings,index)
-
         responses.append(f"{uploaded_file.filename} uploaded successfully!")
 
     return jsonify(responses)
@@ -46,9 +49,7 @@ def upload_file():
 @app.route("/api/generate_response", methods=["POST"])
 def generate():
     data = request.json
-    #print(data)
     query = data.get("query")
-
     # Create query embedding
     query_embedding =  query_to_embedding(query)
     # Search DB and retrieve relevant documents
@@ -60,22 +61,31 @@ def generate():
 
 @app.route("/api/display_files", methods=["GET"])
 def display_files():
-    file_path = SAVE_DIR # "uploads"
-    files = os.listdir(file_path) # list of files present locally
+    files = []
+    # Get files stored in the bucket
+    response = s3.list_objects_v2(Bucket=BUCKET_NAME)
+    if 'Contents' in response:
+        for obj in response['Contents']:
+            files.append(obj['Key']) # name of file
     return files
+
 
 @app.route("/api/download_file", methods=["GET"])
 def download_file():
     file_name = request.args.get("filename")
-    file_path = os.path.join(SAVE_DIR,file_name)
-    return send_file(file_path, mimetype="application/pdf") # send_file : sends the file as it is 
+    file_obj = s3.get_object(Bucket = BUCKET_NAME, Key = file_name)
+    file_stream = io.BytesIO(file_obj['Body'].read()) # convert the file content from bytes to file object
+    return send_file(file_stream, mimetype="application/pdf") # send_file : sends the file as it is 
 
    
 @app.route("/api/delete_file", methods=["POST"])
 def delete_file():
     data = request.json
     file_name = data.get("filename")
-    delete_file_db_local(SAVE_DIR,file_name,index)
+    # delete file from s3
+    s3.delete_object(Bucket = BUCKET_NAME, Key = file_name)
+    # delete corresponding embeddings from db
+    delete_embeddings_from_db(file_name,index)
     response = f"{file_name} deleted successfully!"
     return jsonify(response)
 
