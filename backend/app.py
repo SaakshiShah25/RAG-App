@@ -20,14 +20,17 @@ def home():
     
 @app.route("/api/upload_file", methods=["POST"])
 def upload_file():
+    print("1st print")
     uploaded_files = request.files.getlist("files") # array containing files (file objects)
     responses = []
 
     for uploaded_file in uploaded_files:
+        print("2nd print")
         file_content = uploaded_file.read() # bytes
+        print("3rd print")
         # Save file to S3
         s3.upload_fileobj(io.BytesIO(file_content), BUCKET_NAME, uploaded_file.filename) # convert bytes to file like object
-        
+        print("4th print")
         #1. Extract text from pdf
         pdf_text = extract_text_from_pdf(io.BytesIO(file_content))
         #2. Convert text to chunks
@@ -39,6 +42,7 @@ def upload_file():
         #5. Initialise connection to an index
         global index 
         index = pc.Index(index_name) #used to initialize a connection to an existing index
+        print("Index: ", index)
         #6. Insert embeddings to the DB (upsert)
         doc_id = uploaded_file.filename # name of file
         insert_embeddings_to_db(doc_id,chunks,embeddings,index)
