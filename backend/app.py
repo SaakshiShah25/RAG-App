@@ -5,7 +5,7 @@ import io
 
 
 app = Flask(__name__) # Flask instance
-CORS(app)  # Allows cross-origin requests
+CORS(app, origins=["https://rag-app-frontend-vn1q.onrender.com"])  # Allows cross-origin requests
 
 index_name = os.getenv("INDEX_NAME")
 index =  None
@@ -96,5 +96,6 @@ def delete_file():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))  # Dynamically assigned port
+    print(app.url_map)
     app.run(host="0.0.0.0", port=port, debug=True)
     
