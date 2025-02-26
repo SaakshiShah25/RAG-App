@@ -1,7 +1,7 @@
 ## RAG Architecture:
 ![](https://www.google.com/url?sa=i&url=https%3A%2F%2Fblog.stackademic.com%2Fmastering-retrieval-augmented-generation-rag-architecture-unleash-the-power-of-large-language-a1d2be5f348c&psig=AOvVaw0kNOEGHcE8Rji0tl7DtPbe&ust=1740576834398000&source=images&cd=vfe&opi=89978449&ved=0CBQQjRxqFwoTCPjTrZH43osDFQAAAAAdAAAAABAE)![image](https://github.com/user-attachments/assets/56bcfe5c-3526-4ff7-8795-4e3e443cba3c)
 
-### PDF RAG:
+### Working of RAG-App:
 
 1. Extract text from pdf 
 - Library used : **pdfplumber**
@@ -26,6 +26,9 @@
 - Here, top_k = 2 i.e. **2 most similar documents are retrieved**
 10. Pass the **retrieved documents + query** to LLM and generate output
 - Model used : **"llama-3.3-70b-versatile"**
+
+
+### Website: https://rag-app-frontend-vn1q.onrender.com
 
 ### Tech Stack:
 - Backend : Flask
